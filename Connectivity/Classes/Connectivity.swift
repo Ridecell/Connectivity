@@ -153,6 +153,9 @@ public class Connectivity: NSObject {
     /// % successful connections required to be deemed to have connectivity
     public var successThreshold = Connectivity.Percentage(50.0)
     
+    /// Determines whether the device has fast or slow internet speed
+    public private(set) var estimatedConnectionSpeed: ConnectionSpeed = .unknown
+    
     /// Timer for polling connectivity endpoints when not awaiting changes in reachability
     private var timer: Timer?
     
@@ -383,6 +386,8 @@ private extension Connectivity {
             return urlSession.dataTask(with: urlRequest, completionHandler: completionHandlerForUrl($0))
         }
         
+        let timeTakenToCheckConnectionSpeed = Date()
+        
         tasks.forEach { task in
             dispatchGroup.enter()
             internalQueue.async {
@@ -390,8 +395,10 @@ private extension Connectivity {
             }
         }
         dispatchGroup.notify(queue: externalQueue) { [weak self] in
+            let timeTaken = -timeTakenToCheckConnectionSpeed.timeIntervalSinceNow
             let isConnected = self?.isThresholdMet(successfulChecks, outOf: totalChecks) ?? false
-            self?.updateStatus(isConnected: isConnected)
+            let estimatedSpeed = isConnected ? ConnectionSpeed.estimatedSpeed(timeTaken) : ConnectionSpeed.poor
+            self?.updateStatus(isConnected: isConnected, connectionSpeed: estimatedSpeed)
             if let strongSelf = self {
                 unowned let unownedSelf = strongSelf
                 completion?(unownedSelf) // Caller responsible for retaining the reference.
@@ -680,32 +687,34 @@ private extension Connectivity {
     
     /// Updates the connectivity status using network interface info provided by `NWPath`.
     @available(OSX 10.14, iOS 12.0, tvOS 12.0, *)
-    func updateStatus(from path: NWPath, isConnected: Bool) {
+    func updateStatus(from path: NWPath, isConnected: Bool, connectionSpeed: ConnectionSpeed) {
         availableInterfaces = interfaces(from: path)
         currentInterface = interface(from: path)
         self.isConnected = isConnected
+        self.estimatedConnectionSpeed = connectionSpeed
         status = status(from: path, isConnected: isConnected)
     }
     
     /// Updates the connectivity status using info provided by `NetworkStatus`.
-    func updateStatus(from networkStatus: NetworkStatus, isConnected: Bool) {
+    func updateStatus(from networkStatus: NetworkStatus, isConnected: Bool, connectionSpeed: ConnectionSpeed) {
         let currentInterface = interface(with: networkStatus)
         availableInterfaces = [currentInterface]
         self.currentInterface = currentInterface
         self.isConnected = isConnected
+        self.estimatedConnectionSpeed = connectionSpeed
         status = status(from: networkStatus, isConnected: isConnected)
     }
     
     /// Convenience method - updates the connectivity status using info provided by `NetworkStatus`.
-    func updateStatus(isConnected: Bool) {
+    func updateStatus(isConnected: Bool, connectionSpeed: ConnectionSpeed) {
         switch framework {
         case .network:
             if #available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 5.0, *) {
                 let monitor = (pathMonitor as? NWPathMonitor) ?? NWPathMonitor()
-                updateStatus(from: monitor.currentPath, isConnected: isConnected)
+                updateStatus(from: monitor.currentPath, isConnected: isConnected, connectionSpeed: connectionSpeed)
             } else { // Fallback to SystemConfiguration framework.
                 let networkStatus = reachability.currentReachabilityStatus()
-                updateStatus(from: networkStatus, isConnected: isConnected)
+                updateStatus(from: networkStatus, isConnected: isConnected, connectionSpeed: connectionSpeed)
             }
         case .systemConfiguration:
             let networkStatus = reachability.currentReachabilityStatus()
@@ -713,9 +722,9 @@ private extension Connectivity {
             // - NWPathMonitor can provide a more accurate result.
             if #available(OSX 10.14, iOS 12.0, tvOS 12.0, watchOS 5.0, *), isConnected, networkStatus == NotReachable {
                 let monitor = (pathMonitor as? NWPathMonitor) ?? NWPathMonitor()
-                updateStatus(from: monitor.currentPath, isConnected: isConnected)
+                updateStatus(from: monitor.currentPath, isConnected: isConnected, connectionSpeed: connectionSpeed)
             } else {
-                updateStatus(from: networkStatus, isConnected: isConnected)
+                updateStatus(from: networkStatus, isConnected: isConnected, connectionSpeed: connectionSpeed)
             }
         }
     }
