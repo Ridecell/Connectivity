@@ -397,7 +397,7 @@ private extension Connectivity {
         dispatchGroup.notify(queue: externalQueue) { [weak self] in
             let timeTaken = -timeTakenToCheckConnectionSpeed.timeIntervalSinceNow
             let isConnected = self?.isThresholdMet(successfulChecks, outOf: totalChecks) ?? false
-            let estimatedSpeed = isConnected ? ConnectionSpeed.estimatedSpeed(timeTaken) : ConnectionSpeed.poor
+            let estimatedSpeed = isConnected ? ConnectionSpeed.estimatedSpeed(timeTaken) : ConnectionSpeed.disconnected
             self?.updateStatus(isConnected: isConnected, connectionSpeed: estimatedSpeed)
             if let strongSelf = self {
                 unowned let unownedSelf = strongSelf
