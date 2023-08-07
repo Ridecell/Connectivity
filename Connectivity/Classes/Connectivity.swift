@@ -136,6 +136,9 @@ public class Connectivity: NSObject {
     /// Status last time a check was performed
     private var previousStatus: ConnectivityStatus = .determining
     
+    /// Connection check last time a check was performed
+    private var previousConnectivityCheck: Bool = false
+    
     /// Reachability instance for checking network adapter status
     private let reachability: Reachability
     
@@ -603,13 +606,13 @@ private extension Connectivity {
     /// Posts notification and invokes the appropriate callback when a change in connectivity has occurred.
     private func notifyConnectivityDidChange() {
         let callback = isConnected ? whenConnected : whenDisconnected
-        let currentStatus = status
+        let currentConnectivityCheck = hasReliableNetwork
         unowned let unownedSelf = self // Caller responsible for maintaining the reference
-        if statusHasChanged(previousStatus: previousStatus, currentStatus: currentStatus) {
+        if previousConnectivityCheck != currentConnectivityCheck {
             NotificationCenter.default.post(name: .ConnectivityDidChange, object: unownedSelf)
             callback?(unownedSelf)
         }
-        previousStatus = currentStatus // Update for the next connectivity check
+        previousConnectivityCheck = currentConnectivityCheck
     }
     
 #if canImport(UIKit)
