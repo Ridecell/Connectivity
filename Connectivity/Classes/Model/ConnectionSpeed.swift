@@ -21,7 +21,7 @@ public enum ConnectionSpeed {
             return .fast
         case 0.5...1.0:
             return .slow
-        case 1.0...5.0:
+        case 1.0..<5.0:
             return .poor
         case 5.0...:
             return .disconnected
