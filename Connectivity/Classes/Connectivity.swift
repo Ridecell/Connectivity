@@ -91,6 +91,12 @@ public class Connectivity: NSObject {
     /// Whether or not we are currently deemed to have connectivity
     public private(set) var isConnected: Bool = false
     
+    /// Check if we are both connected and in a state of reliable continuous internet connection
+    public var hasReliableNetwork: Bool {
+        return isConnected &&
+        [ConnectionSpeed.fast, ConnectionSpeed.slow, ConnectionSpeed.poor].contains(estimatedConnectionSpeed)
+    }
+    
     /// Whether or not only HTTPS URLs should be used to check connectivity
     public static var isHTTPSOnly: Bool = true {
         didSet {

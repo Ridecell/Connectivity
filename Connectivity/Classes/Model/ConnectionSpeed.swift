@@ -12,6 +12,7 @@ public enum ConnectionSpeed {
     case fast
     case slow
     case poor
+    case unreliable
     case disconnected
     case unknown
     
@@ -21,8 +22,10 @@ public enum ConnectionSpeed {
             return .fast
         case 0.5...1.0:
             return .slow
-        case 1.0..<5.0:
+        case 1.0..<3.0:
             return .poor
+        case 3.0..<5.0:
+            return .unreliable
         case 5.0...:
             return .disconnected
         default:
