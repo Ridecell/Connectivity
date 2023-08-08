@@ -136,8 +136,8 @@ public class Connectivity: NSObject {
     /// Status last time a check was performed
     private var previousStatus: ConnectivityStatus = .determining
     
-    /// Connection check last time a check was performed
-    private var previousConnectivityCheck: Bool = false
+    /// Connection check last time a check was performed. Initially set to nil
+    private var previousConnectivityCheck: Bool?
     
     /// Reachability instance for checking network adapter status
     private let reachability: Reachability
